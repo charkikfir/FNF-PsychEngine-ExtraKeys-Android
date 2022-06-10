@@ -55,7 +55,7 @@ import Achievements;
 import StageData;
 import FunkinLua;
 import DialogueBoxPsych;
-#if sys
+#if MODS_ALLOWED
 import sys.FileSystem;
 #end
 
@@ -186,6 +186,8 @@ class PlayState extends MusicBeatState
 	public var cameraSpeed:Float = 1;
 
 	var dialogue:Array<String> = ['blah blah blah', 'coolswag'];
+	var dialogueEnd:Array<String> = ['blah blah blah', 'coolswag'];
+
 	var dialogueJson:DialogueFile = null;
 
 	var halloweenBG:BGSprite;
@@ -841,6 +843,12 @@ class PlayState extends MusicBeatState
 				gf.visible = false;
 		}
 
+		switch (SONG.player2)
+		{
+			case 'r-window':
+				camPos.set(dad.getGraphicMidpoint().x - 5, dad.getGraphicMidpoint().y + 40);				
+		}
+
 		switch(curStage)
 		{
 			case 'limo':
@@ -850,6 +858,9 @@ class PlayState extends MusicBeatState
 			case 'schoolEvil':
 				var evilTrail = new FlxTrail(dad, null, 4, 24, 0.3, 0.069); //nice
 				insert(members.indexOf(dadGroup) - 1, evilTrail);
+
+			case 'cyber2':
+				camPos.set(boyfriend.getGraphicMidpoint().x - 100, boyfriend.getGraphicMidpoint().y - 120);	
 		}
 
 		var file:String = Paths.json(songName + '/dialogue'); //Checks for json/Psych Engine dialogue
@@ -857,17 +868,13 @@ class PlayState extends MusicBeatState
 			dialogueJson = DialogueBoxPsych.parseDialogue(SUtil.getPath() + file);
 		}
 
-		var file:String = Paths.txt(songName + '/' + songName + 'Dialogue'); //Checks for vanilla/Senpai dialogue
+		var file:String = Paths.txt(songName + '/' + 'dialogue'); //Checks for vanilla/Senpai dialogue
 		if (OpenFlAssets.exists(file)) {
 			dialogue = CoolUtil.coolTextFile(SUtil.getPath() + file);
 		}
-		var doof:DialogueBox = new DialogueBox(false, dialogue);
-		// doof.x += 70;
-		// doof.y = FlxG.height * 0.5;
+		var doof:RVirusDialogueBox = new RVirusDialogueBox(false, dialogue);
 		doof.scrollFactor.set();
 		doof.finishThing = startCountdown;
-		doof.nextDialogueThing = startNextDialogue;
-		doof.skipDialogueThing = skipDialogue;
 
 		Conductor.songPosition = -5000;
 
@@ -1039,7 +1046,7 @@ class PlayState extends MusicBeatState
 		scoreTxt.visible = !ClientPrefs.hideHud;
 		add(scoreTxt);
 
-		botplayTxt = new FlxText(400, timeBarBG.y + 55, FlxG.width - 800, "STAREPLAY", 32);
+		botplayTxt = new FlxText(400, timeBarBG.y + 55, FlxG.width - 800, "BOTPLAY", 32);
 		botplayTxt.setFormat(Paths.font("vcr.ttf"), 32, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		botplayTxt.scrollFactor.set();
 		botplayTxt.borderSize = 1.25;
@@ -1063,9 +1070,9 @@ class PlayState extends MusicBeatState
 		timeTxt.cameras = [camHUD];
 		doof.cameras = [camHUD];
 
-                #if android
-                addAndroidControls();
-                #end
+		#if android
+		addAndroidControls();
+		#end
 
 		// if (SONG.song == 'South')
 		// FlxG.camera.alpha = 0.7;
@@ -1106,63 +1113,8 @@ class PlayState extends MusicBeatState
 		{
 			switch (daSong)
 			{
-				case "monster":
-					var whiteScreen:FlxSprite = new FlxSprite(0, 0).makeGraphic(Std.int(FlxG.width * 2), Std.int(FlxG.height * 2), FlxColor.WHITE);
-					add(whiteScreen);
-					whiteScreen.scrollFactor.set();
-					whiteScreen.blend = ADD;
-					camHUD.visible = false;
-					snapCamFollowToPos(dad.getMidpoint().x + 150, dad.getMidpoint().y - 100);
-					inCutscene = true;
-
-					FlxTween.tween(whiteScreen, {alpha: 0}, 1, {
-						startDelay: 0.1,
-						ease: FlxEase.linear,
-						onComplete: function(twn:FlxTween)
-						{
-							camHUD.visible = true;
-							remove(whiteScreen);
-							startCountdown();
-						}
-					});
-					FlxG.sound.play(Paths.soundRandom('thunder_', 1, 2));
-					if(gf != null) gf.playAnim('scared', true);
-					boyfriend.playAnim('scared', true);
-
-				case "winter-horrorland":
-					var blackScreen:FlxSprite = new FlxSprite().makeGraphic(Std.int(FlxG.width * 2), Std.int(FlxG.height * 2), FlxColor.BLACK);
-					add(blackScreen);
-					blackScreen.scrollFactor.set();
-					camHUD.visible = false;
-					inCutscene = true;
-
-					FlxTween.tween(blackScreen, {alpha: 0}, 0.7, {
-						ease: FlxEase.linear,
-						onComplete: function(twn:FlxTween) {
-							remove(blackScreen);
-						}
-					});
-					FlxG.sound.play(Paths.sound('Lights_Turn_On'));
-					snapCamFollowToPos(400, -2050);
-					FlxG.camera.focusOn(camFollow);
-					FlxG.camera.zoom = 1.5;
-
-					new FlxTimer().start(0.8, function(tmr:FlxTimer)
-					{
-						camHUD.visible = true;
-						remove(blackScreen);
-						FlxTween.tween(FlxG.camera, {zoom: defaultCamZoom}, 2.5, {
-							ease: FlxEase.quadInOut,
-							onComplete: function(twn:FlxTween)
-							{
-								startCountdown();
-							}
-						});
-					});
-				case 'senpai' | 'roses' | 'thorns':
-					if(daSong == 'roses') FlxG.sound.play(Paths.sound('ANGRY'));
-					schoolIntro(doof);
-
+				case 'malfunction'|'invade'|'r-memory'|'warning'|'virus-r':
+					introDialogue(doof);
 				default:
 					startCountdown();
 			}
@@ -1416,91 +1368,16 @@ class PlayState extends MusicBeatState
 		}
 	}
 
-	function schoolIntro(?dialogueBox:DialogueBox):Void
-	{
+	function introDialogue(dialogueBox:RVirusDialogueBox):Void
+	{				
+		inCutscene = true;										
+		add(dialogueBox);								
+	}
+
+	function endDialogue(dialogueBox:RVirusDialogueBox):Void
+	{				
 		inCutscene = true;
-		var black:FlxSprite = new FlxSprite(-100, -100).makeGraphic(FlxG.width * 2, FlxG.height * 2, FlxColor.BLACK);
-		black.scrollFactor.set();
-		add(black);
-
-		var red:FlxSprite = new FlxSprite(-100, -100).makeGraphic(FlxG.width * 2, FlxG.height * 2, 0xFFff1b31);
-		red.scrollFactor.set();
-
-		var senpaiEvil:FlxSprite = new FlxSprite();
-		senpaiEvil.frames = Paths.getSparrowAtlas('weeb/senpaiCrazy');
-		senpaiEvil.animation.addByPrefix('idle', 'Senpai Pre Explosion', 24, false);
-		senpaiEvil.setGraphicSize(Std.int(senpaiEvil.width * 6));
-		senpaiEvil.scrollFactor.set();
-		senpaiEvil.updateHitbox();
-		senpaiEvil.screenCenter();
-		senpaiEvil.x += 300;
-
-		var songName:String = Paths.formatToSongPath(SONG.song);
-		if (songName == 'roses' || songName == 'thorns')
-		{
-			remove(black);
-
-			if (songName == 'thorns')
-			{
-				add(red);
-				camHUD.visible = false;
-			}
-		}
-
-		new FlxTimer().start(0.3, function(tmr:FlxTimer)
-		{
-			black.alpha -= 0.15;
-
-			if (black.alpha > 0)
-			{
-				tmr.reset(0.3);
-			}
-			else
-			{
-				if (dialogueBox != null)
-				{
-					if (Paths.formatToSongPath(SONG.song) == 'thorns')
-					{
-						add(senpaiEvil);
-						senpaiEvil.alpha = 0;
-						new FlxTimer().start(0.3, function(swagTimer:FlxTimer)
-						{
-							senpaiEvil.alpha += 0.15;
-							if (senpaiEvil.alpha < 1)
-							{
-								swagTimer.reset();
-							}
-							else
-							{
-								senpaiEvil.animation.play('idle');
-								FlxG.sound.play(Paths.sound('Senpai_Dies'), 1, false, null, true, function()
-								{
-									remove(senpaiEvil);
-									remove(red);
-									FlxG.camera.fade(FlxColor.WHITE, 0.01, true, function()
-									{
-										add(dialogueBox);
-										camHUD.visible = true;
-									}, true);
-								});
-								new FlxTimer().start(3.2, function(deadTime:FlxTimer)
-								{
-									FlxG.camera.fade(FlxColor.WHITE, 1.6, false);
-								});
-							}
-						});
-					}
-					else
-					{
-						add(dialogueBox);
-					}
-				}
-				else
-					startCountdown();
-
-				remove(black);
-			}
-		});
+		add(dialogueBox);
 	}
 
 	var startTimer:FlxTimer;
@@ -1811,7 +1688,7 @@ class PlayState extends MusicBeatState
 
 		var songName:String = Paths.formatToSongPath(SONG.song);
 		var file:String = Paths.json(songName + '/events');
-		#if sys
+		#if MODS_ALLOWED
 		if (FileSystem.exists(Paths.modsJson(songName + '/events')) || FileSystem.exists(SUtil.getPath() + file)) {
 		#else
 		if (OpenFlAssets.exists(file)) {
@@ -3127,18 +3004,60 @@ class PlayState extends MusicBeatState
 	}
 	public function finishSong(?ignoreNoteOffset:Bool = false):Void
 	{
-		var finishCallback:Void->Void = endSong; //In case you want to change it in a specific song.
-
+		#if android
+        androidc.visible = false;
+        #end
+        canPause = false;
+		camZooming = false;
 		updateTime = false;
 		FlxG.sound.music.volume = 0;
 		vocals.volume = 0;
 		vocals.pause();
-		if(ClientPrefs.noteOffset <= 0 || ignoreNoteOffset) {
-			finishCallback();
-		} else {
-			finishTimer = new FlxTimer().start(ClientPrefs.noteOffset / 1000, function(tmr:FlxTimer) {
-				finishCallback();
-			});
+
+		switch(Paths.formatToSongPath(curSong))
+		{
+			case 'r-memory'|'the-battle-of-robbery'|'virus-r':
+				if(isStoryMode)
+				{
+					var file:String = Paths.txt(Paths.formatToSongPath(SONG.song) + '/' + 'dialogueEnd'); //Checks for vanilla/Senpai dialogue
+					if (OpenFlAssets.exists(file)) {
+						dialogueEnd = CoolUtil.coolTextFile(SUtil.getPath() + file);
+					}
+					var doofEnd:RVirusDialogueBox = new RVirusDialogueBox(false, dialogueEnd);
+					doofEnd.scrollFactor.set();
+					doofEnd.cameras = [camHUD];
+					doofEnd.finishThing = function(){
+						var finishCallback:Void->Void = endSong; //In case you want to change it in a specific song.
+						if(ClientPrefs.noteOffset <= 0 || ignoreNoteOffset) {
+							finishCallback();
+						} else {
+							finishTimer = new FlxTimer().start(ClientPrefs.noteOffset / 1000, function(tmr:FlxTimer) {
+								finishCallback();
+							});
+						}
+					}
+					endDialogue(doofEnd);
+				}
+				else
+				{
+					var finishCallback:Void->Void = endSong; //In case you want to change it in a specific song.
+					if(ClientPrefs.noteOffset <= 0 || ignoreNoteOffset) {
+						finishCallback();
+					} else {
+						finishTimer = new FlxTimer().start(ClientPrefs.noteOffset / 1000, function(tmr:FlxTimer) {
+							finishCallback();
+						});
+					}
+				}
+			default:
+				var finishCallback:Void->Void = endSong; //In case you want to change it in a specific song.
+				if(ClientPrefs.noteOffset <= 0 || ignoreNoteOffset) {
+					finishCallback();
+				} else {
+					finishTimer = new FlxTimer().start(ClientPrefs.noteOffset / 1000, function(tmr:FlxTimer) {
+						finishCallback();
+					});
+				}
 		}
 	}
 
@@ -3163,18 +3082,12 @@ class PlayState extends MusicBeatState
 				return;
 			}
 		}
-
-                #if android
-                androidc.visible = false;
-                #end		
+	
 		timeBarBG.visible = false;
 		timeBar.visible = false;
 		timeTxt.visible = false;
-		canPause = false;
 		endingSong = true;
-		camZooming = false;
 		inCutscene = false;
-		updateTime = false;
 
 		deathCounter = 0;
 		seenCutscene = false;
@@ -4505,7 +4418,7 @@ class PlayState extends MusicBeatState
 							}
 						}
 					case 'toastie':
-						if(/*ClientPrefs.framerate <= 60 &&*/ ClientPrefs.lowQuality && !ClientPrefs.globalAntialiasing && !ClientPrefs.imagesPersist) {
+						if(/*ClientPrefs.framerate <= 60 &&*/ ClientPrefs.lowQuality && !ClientPrefs.globalAntialiasing) {
 							unlock = true;
 						}
 					case 'debugger':
