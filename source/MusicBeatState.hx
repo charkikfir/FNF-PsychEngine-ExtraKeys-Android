@@ -15,7 +15,7 @@ import flixel.FlxState;
 import flixel.FlxBasic;
 #if android
 import flixel.input.actions.FlxActionInput;
-import android.FlxHitbox;
+import android.AndroidControls.AndroidControls;
 import android.FlxVirtualPad;
 #end
 
@@ -34,7 +34,7 @@ class MusicBeatState extends FlxUIState
 
 	#if android
 	var _virtualpad:FlxVirtualPad;
-	var _hitbox:FlxHitbox;
+	var androidc:AndroidControls;
 	var trackedinputsUI:Array<FlxActionInput> = [];
 	var trackedinputsNOTES:Array<FlxActionInput> = [];
 	#end
@@ -57,45 +57,31 @@ class MusicBeatState extends FlxUIState
 	#end
 
 	#if android
-	public function addHitbox(mania:Int) {               
-		var curhitbox:HitboxType = FOUR;
+	public function addAndroidControls() {
+        androidc = new AndroidControls();
 
-		switch (mania){
-			case 0:
-				curhitbox = ONE;
-			case 1:
-				curhitbox = TWO;
-			case 2:
-				curhitbox = THREE;					
-			case 3:
-				curhitbox = FOUR;	
-			case 4:
-				curhitbox = FIVE;
-			case 5:
-				curhitbox = SIX;
-			case 6:
-				curhitbox = SEVEN;
-			case 7:
-				curhitbox = EIGHT;
-			case 8:
-				curhitbox = NINE;
-			case 9:
-				curhitbox = TEN;
-		        case 10:
-				curhitbox = ELEVEN;									
+		switch (androidc.mode)
+		{
+			case VIRTUALPAD_RIGHT | VIRTUALPAD_LEFT | VIRTUALPAD_CUSTOM:
+				controls.setVirtualPadNOTES(androidc.vpad, FULL, NONE);
+			case DUO:
+				controls.setVirtualPadNOTES(androidc.vpad, DUO, NONE);
+			case HITBOX:
+				controls.setHitBox(androidc.hbox);
 			default:
-				curhitbox = FOUR;
 		}
 
-		_hitbox = new FlxHitbox(curhitbox, 0.75, ClientPrefs.globalAntialiasing);
+		trackedinputsNOTES = controls.trackedinputsNOTES;
+		controls.trackedinputsNOTES = [];
 
 		var camcontrol = new flixel.FlxCamera();
 		FlxG.cameras.add(camcontrol);
 		camcontrol.bgColor.alpha = 0;
-		_hitbox.cameras = [camcontrol];
+		androidc.cameras = [camcontrol];
 
-		_hitbox.visible = false;
-		add(_hitbox);
+		androidc.visible = false;
+
+		add(androidc);
 	}
 	#end
 
@@ -110,8 +96,8 @@ class MusicBeatState extends FlxUIState
 	
 	override function destroy() {
 		#if android
+		controls.removeFlxInput(trackedinputsNOTES);
 		controls.removeFlxInput(trackedinputsUI);
-		controls.removeFlxInput(trackedinputsNOTES);	
 		#end	
 		
 		super.destroy();

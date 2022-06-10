@@ -119,13 +119,6 @@ class ModsMenuState extends MusicBeatState
 		}
 		saveTxt();
 
-		// FIND MOD FOLDERS
-		for (folder in Paths.getModDirectories())
-		{
-			addToModsList([folder, true]);
-		}
-		saveTxt();
-
 		selector = new AttachedSprite();
 		selector.xAdd = -205;
 		selector.yAdd = -68;
@@ -383,9 +376,9 @@ class ModsMenuState extends MusicBeatState
 
 		FlxG.mouse.visible = true;
 
-                #if android
-	        addVirtualPad(UP_DOWN, B);
-                #end
+		#if android
+		addVirtualPad(UP_DOWN, B);
+		#end
 
 		super.create();
 	}

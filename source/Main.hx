@@ -70,6 +70,10 @@ class Main extends Sprite
 		}
 
 		SUtil.doTheCheck();
+
+		#if !debug
+		initialState = TitleState;
+		#end
 	
 		ClientPrefs.loadDefaultKeys();
 		addChild(new FlxGame(gameWidth, gameHeight, initialState, zoom, framerate, framerate, skipSplash, startFullscreen));

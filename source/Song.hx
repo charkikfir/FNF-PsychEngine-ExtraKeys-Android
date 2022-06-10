@@ -5,7 +5,7 @@ import haxe.Json;
 import haxe.format.JsonParser;
 import lime.utils.Assets;
 
-#if sys
+#if MODS_ALLOWED
 import sys.io.File;
 import sys.FileSystem;
 #end
@@ -26,8 +26,6 @@ typedef SwagSong =
 	var player3:String; //deprecated, now replaced by gfVersion
 	var gfVersion:String;
 	var stage:String;
-
-	var mania:Null<Int>;
 
 	var arrowSkin:String;
 	var splashSkin:String;
@@ -82,12 +80,6 @@ class Song
 				}
 			}
 		}
-
-                
-        if (songJson.mania == null) //yall better not replace this
-            {
-                songJson.mania = Note.defaultMania;
-            }
 	}
 
 	public function new(song, notes, bpm)
@@ -111,7 +103,7 @@ class Song
 		#end
 
 		if(rawJson == null) {
-			#if sys
+			#if MODS_ALLOWED
 			rawJson = File.getContent(SUtil.getPath() + Paths.json(formattedFolder + '/' + formattedSong)).trim();
 			#else
 			rawJson = Assets.getText(Paths.json(formattedFolder + '/' + formattedSong)).trim();
