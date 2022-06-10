@@ -41,11 +41,8 @@ class EditorPlayState extends MusicBeatState
 	var startOffset:Float = 0;
 	var startPos:Float = 0;
 
-	var songMania:Int = 0;
-
-	public function new(startPos:Float, songMania:Int = 0) {
+	public function new(startPos:Float) {
 		this.startPos = startPos;
-		this.songMania = songMania;
 		Conductor.songPosition = startPos - startOffset;
 
 		startOffset = Conductor.crochet;
@@ -61,7 +58,7 @@ class EditorPlayState extends MusicBeatState
 	private var noteTypeMap:Map<String, Bool> = new Map<String, Bool>();
 	
 	// Less laggy controls
-	private var keysArray:Array<Array<Dynamic>>;
+	private var keysArray:Array<Dynamic>;
 
 	public static var instance:EditorPlayState;
 
@@ -74,7 +71,12 @@ class EditorPlayState extends MusicBeatState
 		bg.color = FlxColor.fromHSB(FlxG.random.int(0, 359), FlxG.random.float(0, 0.8), FlxG.random.float(0.3, 1));
 		add(bg);
 
-		keysArray = Keybinds.fill();
+		keysArray = [
+			ClientPrefs.copyKey(ClientPrefs.keyBinds.get('note_left')),
+			ClientPrefs.copyKey(ClientPrefs.keyBinds.get('note_down')),
+			ClientPrefs.copyKey(ClientPrefs.keyBinds.get('note_up')),
+			ClientPrefs.copyKey(ClientPrefs.keyBinds.get('note_right'))
+		];
 		
 		strumLine = new FlxSprite(ClientPrefs.middleScroll ? PlayState.STRUM_X_MIDDLESCROLL : PlayState.STRUM_X, 50).makeGraphic(FlxG.width, 10);
 		if(ClientPrefs.downScroll) strumLine.y = FlxG.height - 150;
@@ -87,8 +89,6 @@ class EditorPlayState extends MusicBeatState
 		opponentStrums = new FlxTypedGroup<StrumNote>();
 		playerStrums = new FlxTypedGroup<StrumNote>();
 		add(strumLineNotes);
-
-		PlayState.mania = songMania;
 
 		generateStaticArrows(0);
 		generateStaticArrows(1);
@@ -153,18 +153,19 @@ class EditorPlayState extends MusicBeatState
 		FlxG.mouse.visible = false;
 
 		//sayGo();
-		if(!ClientPrefs.keyboardMode)
-		{
-                        #if android
-			addHitbox(songMania);
-                        _hitbox.visible = true;
-                        #end
-		}
-                else if(ClientPrefs.keyboardMode)
+		if(!ClientPrefs.controllerMode)
 		{
 			FlxG.stage.addEventListener(KeyboardEvent.KEY_DOWN, onKeyPress);
 			FlxG.stage.addEventListener(KeyboardEvent.KEY_UP, onKeyRelease);
 		}
+
+		#if android
+		addAndroidControls();
+		#end
+
+		#if android
+		androidc.visible = true;
+		#end
 
 		super.create();
 	}
@@ -222,11 +223,11 @@ class EditorPlayState extends MusicBeatState
 				if(songNotes[1] > -1) { //Real notes
 					var daStrumTime:Float = songNotes[0];
 					if(daStrumTime >= startPos) {
-						var daNoteData:Int = Std.int(songNotes[1] % Note.ammo[songMania]);
+						var daNoteData:Int = Std.int(songNotes[1] % 4);
 
 						var gottaHitNote:Bool = section.mustHitSection;
 
-						if (songNotes[1] > (Note.ammo[songMania] - 1))
+						if (songNotes[1] > 3)
 						{
 							gottaHitNote = !section.mustHitSection;
 						}
@@ -327,6 +328,9 @@ class EditorPlayState extends MusicBeatState
 		{
 			FlxG.sound.music.pause();
 			vocals.pause();
+                        #if android
+                        androidc.visible = false;
+                        #end
 			LoadingState.loadAndSwitchState(new editors.ChartingState());
 		}
 
@@ -375,20 +379,17 @@ class EditorPlayState extends MusicBeatState
 				// i am so fucking sorry for this if condition
 				var strumX:Float = 0;
 				var strumY:Float = 0;
-				var strumHeight:Float = 0;
 				if(daNote.mustPress) {
 					strumX = playerStrums.members[daNote.noteData].x;
 					strumY = playerStrums.members[daNote.noteData].y;
-					strumHeight = playerStrums.members[daNote.noteData].height;
 				} else {
 					strumX = opponentStrums.members[daNote.noteData].x;
 					strumY = opponentStrums.members[daNote.noteData].y;
-					strumHeight = opponentStrums.members[daNote.noteData].height;
 				}
 
 				strumX += daNote.offsetX;
 				strumY += daNote.offsetY;
-				var center:Float = strumY + strumHeight / 2;
+				var center:Float = strumY + Note.swagWidth / 2;
 
 				if(daNote.copyX) {
 					daNote.x = strumX;
@@ -398,13 +399,17 @@ class EditorPlayState extends MusicBeatState
 						daNote.y = (strumY + 0.45 * (Conductor.songPosition - daNote.strumTime) * roundedSpeed);
 						if (daNote.isSustainNote) {
 							//Jesus fuck this took me so much mother fucking time AAAAAAAAAA
-							if (daNote.animation.curAnim.name.endsWith('tail')) {
+							if (daNote.animation.curAnim.name.endsWith('end')) {
 								daNote.y += 10.5 * (fakeCrochet / 400) * 1.5 * roundedSpeed + (46 * (roundedSpeed - 1));
 								daNote.y -= 46 * (1 - (fakeCrochet / 600)) * roundedSpeed;
-								daNote.y -= 19;
-							}
-							daNote.y += (strumHeight / 2) - (60.5 * (roundedSpeed - 1));
-							daNote.y += (27.5 * ((PlayState.SONG.bpm / 100) - 1) * (roundedSpeed - 1)) * Note.scales[songMania];
+								if(PlayState.isPixelStage) {
+									daNote.y += 8;
+								} else {
+									daNote.y -= 19;
+								}
+							} 
+							daNote.y += (Note.swagWidth / 2) - (60.5 * (roundedSpeed - 1));
+							daNote.y += 27.5 * ((PlayState.SONG.bpm / 100) - 1) * (roundedSpeed - 1);
 
 							if(daNote.mustPress || !daNote.ignoreNote)
 							{
@@ -548,7 +553,7 @@ class EditorPlayState extends MusicBeatState
 		var key:Int = getKeyFromEvent(eventKey);
 		//trace('Pressed: ' + eventKey);
 
-		if (key > -1 && (FlxG.keys.checkStatus(eventKey, JUST_PRESSED) || !ClientPrefs.keyboardMode))
+		if (key > -1 && (FlxG.keys.checkStatus(eventKey, JUST_PRESSED) || ClientPrefs.controllerMode))
 		{
 			if(generatedMusic)
 			{
@@ -637,11 +642,11 @@ class EditorPlayState extends MusicBeatState
 	{
 		if(key != NONE)
 		{
-			for (i in 0...keysArray[songMania].length)
+			for (i in 0...keysArray.length)
 			{
-				for (j in 0...keysArray[songMania][i].length)
+				for (j in 0...keysArray[i].length)
 				{
-					if(key == keysArray[songMania][i][j])
+					if(key == keysArray[i][j])
 					{
 						return i;
 					}
@@ -651,58 +656,27 @@ class EditorPlayState extends MusicBeatState
 		return -1;
 	}
 
-	private function keysArePressed():Bool
-	{
-		for (i in 0...keysArray[songMania].length) {
-			for (j in 0...keysArray[songMania][i].length) {
-				if (FlxG.keys.checkStatus(keysArray[songMania][i][j], PRESSED)) return true;
-			}
-		}
-
-		return false;
-	}
-
-	private function dataKeyIsPressed(data:Int):Bool
-	{
-		for (i in 0...keysArray[songMania][data].length) {
-			if (FlxG.keys.checkStatus(keysArray[songMania][data][i], PRESSED)) return true;
-		}
-
-		return false;
-	}
-
-        #if android
-	private function hitboxKeysArePressed():Bool
-	{
-	        if (_hitbox.array[songMania].pressed) 
-                {
-			return true;
-		}
-		return false;
-	}
-
-	private function hitboxDataKeyIsPressed(data:Int):Bool
-	{
-		if (_hitbox.array[data].pressed) 
-                {
-                        return true;
-                }
-		return false;
-	}
-        #end
-
 	private function keyShit():Void
 	{
-	        if(!ClientPrefs.keyboardMode)
+		// HOLDING
+		var up = controls.NOTE_UP;
+		var right = controls.NOTE_RIGHT;
+		var down = controls.NOTE_DOWN;
+		var left = controls.NOTE_LEFT;
+		var controlHoldArray:Array<Bool> = [left, down, up, right];
+		
+		// TO DO: Find a better way to handle controller inputs, this should work for now
+		if(ClientPrefs.controllerMode)
 		{
-		        #if android
-		        for (i in 0..._hitbox.array.length) {
-			        if (_hitbox.array[i].justPressed)
-			        {
-				       onKeyPress(new KeyboardEvent(KeyboardEvent.KEY_DOWN, true, true, -1, keysArray[songMania][i][0]));
-			        }
-		        }
-		        #end
+			var controlArray:Array<Bool> = [controls.NOTE_LEFT_P, controls.NOTE_DOWN_P, controls.NOTE_UP_P, controls.NOTE_RIGHT_P];
+			if(controlArray.contains(true))
+			{
+				for (i in 0...controlArray.length)
+				{
+					if(controlArray[i])
+						onKeyPress(new KeyboardEvent(KeyboardEvent.KEY_DOWN, true, true, -1, keysArray[i][0]));
+				}
+			}
 		}
 
 		// FlxG.watch.addQuick('asdfa', upP);
@@ -711,39 +685,26 @@ class EditorPlayState extends MusicBeatState
 			// rewritten inputs???
 			notes.forEachAlive(function(daNote:Note)
 			{
-	                        if(!ClientPrefs.keyboardMode)
-		                {
-                                        #if android
-				        // hold note functions
-				        if (daNote.isSustainNote && hitboxDataKeyIsPressed(daNote.noteData)
-				        && daNote.canBeHit && daNote.mustPress && !daNote.tooLate 
-				        && !daNote.wasGoodHit) {
-					       goodNoteHit(daNote);
-				        }
-                                        #end
-                                }
-                                else
-                                {
-				        // hold note functions
-				        if (daNote.isSustainNote && dataKeyIsPressed(daNote.noteData)
-				        && daNote.canBeHit && daNote.mustPress && !daNote.tooLate 
-				        && !daNote.wasGoodHit) {
-					       goodNoteHit(daNote);
-				        }
-                                }
+				// hold note functions
+				if (daNote.isSustainNote && controlHoldArray[daNote.noteData] && daNote.canBeHit 
+				&& daNote.mustPress && !daNote.tooLate && !daNote.wasGoodHit) {
+					goodNoteHit(daNote);
+				}
 			});
 		}
 
-	        if(!ClientPrefs.keyboardMode)
+		// TO DO: Find a better way to handle controller inputs, this should work for now
+		if(ClientPrefs.controllerMode)
 		{
-		        #if android
-		        for (i in 0..._hitbox.array.length) {
-			        if (_hitbox.array[i].justReleased)
-			        {
-				       onKeyRelease(new KeyboardEvent(KeyboardEvent.KEY_UP, true, true, -1, keysArray[songMania][i][0]));
-			        }
-		        }
-		        #end
+			var controlArray:Array<Bool> = [controls.NOTE_LEFT_R, controls.NOTE_DOWN_R, controls.NOTE_UP_R, controls.NOTE_RIGHT_R];
+			if(controlArray.contains(true))
+			{
+				for (i in 0...controlArray.length)
+				{
+					if(controlArray[i])
+						onKeyRelease(new KeyboardEvent(KeyboardEvent.KEY_UP, true, true, -1, keysArray[i][0]));
+				}
+			}
 		}
 	}
 
@@ -986,7 +947,7 @@ class EditorPlayState extends MusicBeatState
 
 	private function generateStaticArrows(player:Int):Void
 	{
-		for (i in 0...Note.ammo[songMania])
+		for (i in 0...4)
 		{
 			// FlxG.log.add(i);
 			var targetAlpha:Float = 1;
@@ -1047,9 +1008,9 @@ class EditorPlayState extends MusicBeatState
 		var skin:String = 'noteSplashes';
 		if(PlayState.SONG.splashSkin != null && PlayState.SONG.splashSkin.length > 0) skin = PlayState.SONG.splashSkin;
 		
-		var hue:Float = ClientPrefs.arrowHSV[Std.int(Note.keysShit.get(songMania).get('pixelAnimIndex')[data] % Note.ammo[songMania])][0] / 360;
-		var sat:Float = ClientPrefs.arrowHSV[Std.int(Note.keysShit.get(songMania).get('pixelAnimIndex')[data] % Note.ammo[songMania])][1] / 100;
-		var brt:Float = ClientPrefs.arrowHSV[Std.int(Note.keysShit.get(songMania).get('pixelAnimIndex')[data] % Note.ammo[songMania])][2] / 100;
+		var hue:Float = ClientPrefs.arrowHSV[data % 4][0] / 360;
+		var sat:Float = ClientPrefs.arrowHSV[data % 4][1] / 100;
+		var brt:Float = ClientPrefs.arrowHSV[data % 4][2] / 100;
 		if(note != null) {
 			skin = note.noteSplashTexture;
 			hue = note.noteSplashHue;
@@ -1067,8 +1028,11 @@ class EditorPlayState extends MusicBeatState
 		vocals.stop();
 		vocals.destroy();
 
-		FlxG.stage.removeEventListener(KeyboardEvent.KEY_DOWN, onKeyPress);
-		FlxG.stage.removeEventListener(KeyboardEvent.KEY_UP, onKeyRelease);
+		if(!ClientPrefs.controllerMode)
+		{
+			FlxG.stage.removeEventListener(KeyboardEvent.KEY_DOWN, onKeyPress);
+			FlxG.stage.removeEventListener(KeyboardEvent.KEY_UP, onKeyRelease);
+		}
 		super.destroy();
 	}
 }
